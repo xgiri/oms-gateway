@@ -1,6 +1,8 @@
 # Add this service to the root docker-compose.yml, alongside `app` /
-# `app-worker`. Not wired in automatically — review against your actual
-# .env and `oms-network` setup first.
+# `app-worker` / `bff`. Depends on `bff` now too (for OMS_BFF_URI routing) —
+# merge oms-bff's own snippet in first if it isn't already. Not wired in
+# automatically — review against your actual .env and `oms-network` setup
+# first.
 
   gateway:
     image: oms-gateway:${GATEWAY_VERSION:-local}
@@ -18,6 +20,7 @@
     environment:
       OMS_MONOLITH_URI: http://app:8080
       OMS_JWKS_URI: http://app:8080/.well-known/jwks.json
+      OMS_BFF_URI: http://bff:8095
       REDIS_HOST: redis
       REDIS_PORT: 6379
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200}
@@ -36,6 +39,8 @@
         condition: service_healthy
       vault-init:
         condition: service_completed_successfully
+      bff:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8091/actuator/health"]
       interval: 15s

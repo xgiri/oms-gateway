@@ -31,11 +31,17 @@ public class SecurityConfig {
     // (PUBLIC_DOC_PATHS + the login/JWKS/health exceptions) — kept in sync
     // deliberately so the gateway's edge policy doesn't drift from the
     // monolith's, which still enforces its own copy of this list too.
+    // /graphiql is the one addition oms-main doesn't have: oms-bff's own
+    // dev-only explorer page, routed through here now too (see
+    // application.properties' oms-bff route) - it's static HTML/JS, and the
+    // queries it submits still POST to /graphql, which is NOT in this list
+    // and still requires a valid JWT.
     private static final String[] PUBLIC_PATHS = {
             "/api/v1/auth/login",
             "/.well-known/jwks.json",
             "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
-            "/docs", "/docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
+            "/docs", "/docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+            "/graphiql", "/graphiql/**"
     };
 
     @Bean

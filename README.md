@@ -15,18 +15,22 @@ Angular just talks to this instead of the monolith directly.
   see `RateLimiterConfig`'s Javadoc)
 - CORS is now handled here, since this is the origin the browser talks to
 - Forwards `X-Auth-User` / `X-Auth-Roles` downstream on every request,
-  populated from the validated JWT (see `AuthHeaderForwardingFilter`). Built
-  for `oms-bff` to trust instead of re-verifying the JWT itself — dormant
-  until `oms-bff` actually has a route here (see below)
+  populated from the validated JWT (see `AuthHeaderForwardingFilter`) —
+  `oms-bff` trusts these instead of re-verifying the JWT itself, see its
+  `TrustedHeaderAuthentication`
+- Routes `/graphql` and `/graphiql/**` through to `oms-bff`
+  (`OMS_BFF_URI`, defaults to `http://bff:8095`) — `/graphql` goes through
+  the same JWT-authenticated path as `/api/v1/**`; `/graphiql` (the dev-only
+  explorer page) is left open the same way Swagger UI is for `oms-main`
 
 ## What this deliberately does NOT do yet
 
-- No aggregation/composition — that's the `oms-bff` module in step 2
-- No GraphQL
-- **No route to `oms-bff` yet.** `AuthHeaderForwardingFilter` forwards the
-  trusted headers on every request already, but until a route exists here
-  pointing at `oms-bff`, nothing actually reaches it through the gateway.
-  That's the next piece of wiring, not part of this increment.
+- No GraphQL aggregation logic of its own — that's all in `oms-bff`; this
+  gateway only routes and forwards identity to it
+- `oms-main`'s own auth/rate-limiting stays fully in place — this is
+  additive defense in depth for now, not a replacement. Retiring the
+  monolith-side checks is a later, separate decision once the gateway path
+  is proven in production.
 - `oms-main`'s own auth/rate-limiting stays fully in place — this is
   additive defense in depth for now, not a replacement. Retiring the
   monolith-side checks is a later, separate decision once the gateway path
@@ -74,6 +78,11 @@ Then point Angular's API base URL at `http://localhost:8090` instead of
 `:8080`, and update `CORS_ALLOWED_ORIGINS` — the monolith's own copy of that
 env var no longer matters for browser traffic once Angular is repointed
 here, but leave it set (harmless) until you're ready to remove it.
+
+`oms-bff`'s own service block (see its `docker-compose.snippet.yml`) needs
+merging in too, alongside this one — the gateway's route to it
+(`OMS_BFF_URI`, defaults to `http://bff:8095`, the compose service name)
+won't resolve anything without it.
 
 ## Known gaps / things to verify before this goes further
 
