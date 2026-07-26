@@ -14,11 +14,19 @@ Angular just talks to this instead of the monolith directly.
   (`oms-main`'s own Bucket4j login limiter stays in place too, on purpose —
   see `RateLimiterConfig`'s Javadoc)
 - CORS is now handled here, since this is the origin the browser talks to
+- Forwards `X-Auth-User` / `X-Auth-Roles` downstream on every request,
+  populated from the validated JWT (see `AuthHeaderForwardingFilter`). Built
+  for `oms-bff` to trust instead of re-verifying the JWT itself — dormant
+  until `oms-bff` actually has a route here (see below)
 
 ## What this deliberately does NOT do yet
 
 - No aggregation/composition — that's the `oms-bff` module in step 2
 - No GraphQL
+- **No route to `oms-bff` yet.** `AuthHeaderForwardingFilter` forwards the
+  trusted headers on every request already, but until a route exists here
+  pointing at `oms-bff`, nothing actually reaches it through the gateway.
+  That's the next piece of wiring, not part of this increment.
 - `oms-main`'s own auth/rate-limiting stays fully in place — this is
   additive defense in depth for now, not a replacement. Retiring the
   monolith-side checks is a later, separate decision once the gateway path
