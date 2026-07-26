@@ -31,6 +31,7 @@ public class SecurityConfig {
             "/api/v1/auth/login",
             "/.well-known/jwks.json",
             "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
+            "/actuator/gateway/**",
             "/docs", "/docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
     };
 

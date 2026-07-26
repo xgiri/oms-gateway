@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Backs the {@code oms-login} route's {@code RequestRateLimiter} filter
- * (see application.yml) — a Redis token-bucket limiter keyed per client IP,
+ * (see application.properties) — a Redis token-bucket limiter keyed per client IP,
  * the same brute-force-protection shape as oms-main's Bucket4j login
  * limiter, just enforced at the edge instead of in the app. Reuses the same
  * Redis instance oms-main already runs (see spring.data.redis.* above), no
@@ -32,7 +32,7 @@ public class RateLimiterConfig {
         // as "5 per 60s" — RedisRateLimiter has no native per-minute mode,
         // so this intentionally allows a slightly burstier edge limit than
         // the monolith's. Since the monolith's own limiter still applies
-        // behind this one (defense in depth, see application.yml), the
+        // behind this one (defense in depth, see application.properties), the
         // stricter of the two always wins in practice.
         return new RedisRateLimiter(replenishRate, burstCapacity);
     }
