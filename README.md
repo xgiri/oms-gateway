@@ -24,6 +24,38 @@ Angular just talks to this instead of the monolith directly.
   monolith-side checks is a later, separate decision once the gateway path
   is proven in production.
 
+## Vault
+
+Wired the same way as `oms-main`: off by default (`VAULT_ENABLED`), TOKEN
+auth in dev against the same dev-mode Vault container, deliberately
+overridden to read from **`secret/oms/<profile>`** — `oms-main`'s own KV
+path — instead of the default `secret/oms-gateway/<profile>` a plain
+`spring.application.name`-based context would give. The only secret the
+gateway needs today (`REDIS_PASSWORD`) is the exact same value `oms-main`
+already stores there, so both apps share one KV entry rather than
+duplicating it. See the comment on `spring.cloud.vault.kv.default-context`
+in `application.properties` if this ever needs to change.
+
+Running from IntelliJ (Vault container from `oms-main`'s compose stack
+already up, port 8200 published to host):
+
+```
+VAULT_ENABLED=true
+VAULT_ADDR=http://localhost:8200
+VAULT_TOKEN=oms-dev-root-token
+```
+
+Add these alongside `OMS_MONOLITH_URI` / `OMS_JWKS_URI` / `REDIS_HOST` in
+the run configuration's environment variables. With `VAULT_ENABLED=true`,
+you no longer need to set `REDIS_PASSWORD` yourself — Vault supplies it.
+(`VAULT_TOKEN` here is the same throwaway dev root token `oms-main` already
+uses — never a real secret, see `vault/dev/seed.sh` in `oms-main` for
+where it's seeded from.)
+
+If you'd rather not stand up Vault while iterating locally, leave
+`VAULT_ENABLED` unset (defaults to `false`) and set `REDIS_PASSWORD`
+directly instead, same as before — both paths work.
+
 ## Running locally alongside the existing docker-compose stack
 
 Add the service block below to the root `docker-compose.yml` (not copied in
@@ -37,17 +69,22 @@ here, but leave it set (harmless) until you're ready to remove it.
 
 ## Known gaps / things to verify before this goes further
 
-- **Not yet built/compiled in this environment** — no network access here
-  to resolve Maven dependencies, so treat this as a scaffold to build and
-  run locally (`./mvnw clean package` after adding the wrapper, or plain
-  `mvn`), not as verified-working code yet.
+- **Routing, JWT validation config, and Redis rate limiting have been run
+  and confirmed working locally** (via IntelliJ against `oms-main`'s
+  docker-compose stack). Vault wiring is new and not yet run — confirm
+  `VAULT_ENABLED=true` actually resolves `REDIS_PASSWORD` from
+  `secret/oms/dev` before relying on it; if the import fails silently
+  (`optional:vault://`), the app still starts but `REDIS_PASSWORD` falls
+  back to empty, which will reproduce the NOAUTH error from earlier.
 - **Token blacklist (logout)**: `oms-main`'s `TokenBlacklistService` checks
   Redis for revoked tokens on every request — the gateway's JWT validation
   only checks signature/expiry, not revocation. A logged-out-but-not-yet-
   expired token would currently be accepted at the gateway and only
   rejected once it reaches the monolith. Harmless today (the monolith still
-  rejects it), but worth knowing: if you ever want the gateway to reject
-  revoked tokens too, it needs the same Redis blacklist check.
+  rejects it), but worth knowing.
 - **No mvnw wrapper** — added a note in the Dockerfile; run
   `mvn -N wrapper:wrapper` here to match `oms-main`'s pinned-Maven-version
   approach before treating this as production-ready.
+- **Gateway actuator endpoint** (`/actuator/gateway/**`) is off by default
+  in the committed config, on purpose — see CVE-2025-41243/41253. Only
+  re-enable it temporarily for local debugging, never commit it enabled.

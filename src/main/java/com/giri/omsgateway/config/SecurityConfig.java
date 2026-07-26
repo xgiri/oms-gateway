@@ -1,5 +1,6 @@
 package com.giri.omsgateway.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -23,6 +24,9 @@ import java.util.List;
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
+    @Value("${app.cors.allowed-origins:http://localhost:4200}")
+    private List<String> allowedOrigins;
+
     // Same public-paths shape as oms-main's own SecurityConfig
     // (PUBLIC_DOC_PATHS + the login/JWKS/health exceptions) — kept in sync
     // deliberately so the gateway's edge policy doesn't drift from the
@@ -31,7 +35,6 @@ public class SecurityConfig {
             "/api/v1/auth/login",
             "/.well-known/jwks.json",
             "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
-            "/actuator/gateway/**",
             "/docs", "/docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
     };
 
@@ -67,10 +70,8 @@ public class SecurityConfig {
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        String origins = System.getenv().getOrDefault("CORS_ALLOWED_ORIGINS", "http://localhost:4200");
-
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(origins.split(",")));
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

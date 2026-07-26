@@ -32,7 +32,14 @@
 		     transitively — do NOT also add spring-boot-starter-web, the two
 		     server stacks (Tomcat/servlet vs Netty/reactive) can't coexist
 		     cleanly in one app, and Spring Cloud Gateway only runs on the
-		     reactive one. -->
+		     reactive one.
+		     NOTE: as of the Spring Cloud Gateway 4.2+ line (pulled in by
+		     spring-cloud-dependencies 2025.1.2 below), the old
+		     spring-cloud-starter-gateway artifact was split by server type
+		     into spring-cloud-starter-gateway-server-webflux and
+		     ...-server-webmvc — the BOM no longer manages the old artifact
+		     name at all, so pinning that name here left Maven with no
+		     version to resolve. This project wants the reactive one. -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
@@ -56,6 +63,15 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+		</dependency>
+
+		<!-- Same Vault instance/KV backend oms-main reads from (see
+		     spring.cloud.vault.kv.default-context=oms in application.properties) —
+		     supplies REDIS_PASSWORD from secret/oms/<profile>, no shared
+		     secret duplicated between the two apps. -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-vault-config</artifactId>
 		</dependency>
 
 		<dependency>
