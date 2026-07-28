@@ -93,12 +93,17 @@ won't resolve anything without it.
   `secret/oms/dev` before relying on it; if the import fails silently
   (`optional:vault://`), the app still starts but `REDIS_PASSWORD` falls
   back to empty, which will reproduce the NOAUTH error from earlier.
-- **Token blacklist (logout)**: `oms-main`'s `TokenBlacklistService` checks
-  Redis for revoked tokens on every request — the gateway's JWT validation
-  only checks signature/expiry, not revocation. A logged-out-but-not-yet-
-  expired token would currently be accepted at the gateway and only
-  rejected once it reaches the monolith. Harmless today (the monolith still
-  rejects it), but worth knowing.
+- ~~**Token blacklist (logout)**~~ — closed. `JwtDecoderConfig` wraps the
+  JWKS-backed decoder with a check against the same
+  `blacklist:jwt:<sha256-hex>` Redis keys `oms-main`'s `TokenBlacklistService`
+  writes on logout (see `config/TokenBlacklistService.java` here — read-only
+  mirror, same Redis instance, same hash scheme). A revoked token is now
+  rejected at the edge as a 401, same as an invalid signature, instead of
+  reaching the monolith first. The decision logic is factored out into
+  `BlacklistCheckingJwtDecoder` and covered by
+  `BlacklistCheckingJwtDecoderTest` (allow / reject / fail-fast-without-a-
+  Redis-call, all against stub collaborators — no live JWKS or Redis
+  needed to run it).
 - **No mvnw wrapper** — added a note in the Dockerfile; run
   `mvn -N wrapper:wrapper` here to match `oms-main`'s pinned-Maven-version
   approach before treating this as production-ready.
