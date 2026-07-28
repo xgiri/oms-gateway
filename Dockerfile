@@ -1,15 +1,19 @@
 # ---- Build stage ------------------------------------------------------
-# No mvnw wrapper checked into this module yet (add one with `mvn -N
-# wrapper:wrapper` to match oms-main's pinned-Maven-version approach) — uses
-# a Maven base image for now.
-FROM maven:3.9-eclipse-temurin-21 AS build
+# Use the project's own Maven wrapper (mvnw) rather than a Maven base image,
+# so the build here always matches the version pinned in
+# .mvn/wrapper/maven-wrapper.properties instead of whatever the CI/host has.
+# Same pattern as oms-main's Dockerfile.
+FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /build
 
-COPY pom.xml ./
-RUN mvn -B dependency:go-offline
+# Copy only what's needed to resolve dependencies first, so this layer is
+# cached across builds unless pom.xml itself changes.
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+RUN chmod +x mvnw && ./mvnw -B dependency:go-offline
 
 COPY src/ src/
-RUN mvn -B clean package -DskipTests
+RUN ./mvnw -B clean package -DskipTests
 
 # ---- Runtime stage ------------------------------------------------------
 FROM eclipse-temurin:21-jre-jammy

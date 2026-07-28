@@ -104,9 +104,12 @@ won't resolve anything without it.
   `BlacklistCheckingJwtDecoderTest` (allow / reject / fail-fast-without-a-
   Redis-call, all against stub collaborators — no live JWKS or Redis
   needed to run it).
-- **No mvnw wrapper** — added a note in the Dockerfile; run
-  `mvn -N wrapper:wrapper` here to match `oms-main`'s pinned-Maven-version
-  approach before treating this as production-ready.
+- ~~**No mvnw wrapper**~~ — closed. `mvnw`/`mvnw.cmd` and
+  `.mvn/wrapper/maven-wrapper.properties` are checked in now, pinned to the
+  same Maven version and wrapper-plugin version as `oms-main`
+  (`3.9.16` / `only-script` / wrapper `3.3.4`). The Dockerfile's build stage
+  now uses `./mvnw` instead of a generic `maven:3.9-eclipse-temurin-21`
+  base image, same as `oms-main`'s Dockerfile.
 - **Gateway actuator endpoint** (`/actuator/gateway/**`) is off by default
   in the committed config, on purpose — see CVE-2025-41243/41253. Only
   re-enable it temporarily for local debugging, never commit it enabled.
