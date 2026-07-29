@@ -88,11 +88,19 @@ won't resolve anything without it.
 
 - **Routing, JWT validation config, and Redis rate limiting have been run
   and confirmed working locally** (via IntelliJ against `oms-main`'s
-  docker-compose stack). Vault wiring is new and not yet run — confirm
-  `VAULT_ENABLED=true` actually resolves `REDIS_PASSWORD` from
-  `secret/oms/dev` before relying on it; if the import fails silently
-  (`optional:vault://`), the app still starts but `REDIS_PASSWORD` falls
-  back to empty, which will reproduce the NOAUTH error from earlier.
+  docker-compose stack). Vault wiring is new and **still not actually run
+  against a live Vault** — that part can't be verified from a diff, only by
+  running it (see "Vault" section above for the exact env vars to set in
+  an IntelliJ run config). What's now closed is the *silent-failure* risk
+  specifically: previously, an unreachable Vault or a missing
+  `REDIS_PASSWORD` key at `secret/oms/dev` would fail the
+  `optional:vault://` import quietly, the app would start up looking
+  healthy, and the actual cause would only surface later as a confusing
+  Redis `NOAUTH` error. `VaultRedisPasswordGuard` now refuses to start at
+  all when `VAULT_ENABLED=true` but the resolved Redis password is empty —
+  same immediate, unambiguous failure at the root cause instead of a
+  symptom three layers downstream (see `VaultRedisPasswordGuardTest` for
+  the covered cases). Run it once for real before treating this as done.
 - ~~**Token blacklist (logout)**~~ — closed. `JwtDecoderConfig` wraps the
   JWKS-backed decoder with a check against the same
   `blacklist:jwt:<sha256-hex>` Redis keys `oms-main`'s `TokenBlacklistService`
