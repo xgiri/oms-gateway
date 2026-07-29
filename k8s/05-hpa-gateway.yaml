@@ -1,0 +1,33 @@
+# CPU-based HPA, same pragmatic default as oms-main's 05-hpa-web.yaml —
+# works out of the box with just metrics-server. Request-rate-based scaling
+# is the same upgrade path documented there (prometheus-adapter or a KEDA
+# Prometheus scaler against http_server_requests_seconds_count), arguably
+# even more natural here since the gateway's whole job is HTTP throughput —
+# not implemented for the same reason: it needs a target RPS/latency this
+# repo can't choose for you.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: oms-gateway
+  labels:
+    app.kubernetes.io/name: oms-gateway
+    app.kubernetes.io/component: gateway
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: oms-gateway
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      stabilizationWindowSeconds: 0

@@ -1,0 +1,40 @@
+# Non-secret config for the gateway Deployment. Mirrors oms-main's
+# 00-configmap.yaml in spirit — same SPRING_PROFILES_ACTIVE=prod reasoning
+# (see application-prod.properties: fails fast without a real Vault, no
+# "optional:" import) — but far shorter, since the gateway has no
+# DB/Kafka/JWT-signing-key config of its own; it only routes, rate-limits,
+# and validates JWTs against a key it doesn't own.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oms-gateway-config
+  labels:
+    app.kubernetes.io/name: oms-gateway
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+
+  # In-cluster Service names — see oms-main's 03-service-web.yaml for
+  # oms-web, and note below re: oms-bff (no k8s manifests exist for it yet).
+  OMS_MONOLITH_URI: "http://oms-web:8080"
+  OMS_JWKS_URI: "http://oms-web:8080/.well-known/jwks.json"
+  # TBD: oms-bff has no Deployment/Service manifests yet (out of scope for
+  # this increment — the gateway's /graphql route will 502 until oms-bff
+  # gets its own k8s/ directory following this same pattern). Left pointing
+  # at the Service name oms-bff will presumably use, so this only needs
+  # updating if that name changes, not re-derived from scratch later.
+  OMS_BFF_URI: "http://oms-bff:8095"
+
+  # Same shared Redis instance oms-main's ConfigMap points at — rate
+  # limiting and the logout blacklist both read/write it.
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+
+  # Must be the real frontend origin(s) — no localhost fallback in prod,
+  # same reasoning as oms-main's CORS_ALLOWED_ORIGINS.
+  CORS_ALLOWED_ORIGINS: "https://app.example.com"
+
+  # Connection details only, never a credential — auth is via this pod's
+  # own ServiceAccount (see 12-serviceaccount.yaml and
+  # ../vault/README.md). Replace with your real Vault address.
+  VAULT_ADDR: "https://vault.example.com:8200"
+  VAULT_KUBERNETES_ROLE: "oms-gateway-prod"

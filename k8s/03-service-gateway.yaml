@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: oms-gateway
+  labels:
+    app.kubernetes.io/name: oms-gateway
+    app.kubernetes.io/component: gateway
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: oms-gateway
+    app.kubernetes.io/component: gateway
+  ports:
+    - name: http
+      port: 8090
+      targetPort: http

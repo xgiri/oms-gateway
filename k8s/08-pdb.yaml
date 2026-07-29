@@ -1,0 +1,16 @@
+# Same reasoning as oms-main's 08-pdb.yaml — protects against a node
+# drain/upgrade taking out all gateway replicas at once. Single-role here
+# (no web/worker split), so just one PDB, not two.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: oms-gateway
+  labels:
+    app.kubernetes.io/name: oms-gateway
+    app.kubernetes.io/component: gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oms-gateway
+      app.kubernetes.io/component: gateway

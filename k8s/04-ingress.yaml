@@ -1,0 +1,46 @@
+# Ownership moved here from oms-main/k8s/04-ingress.yaml: the gateway is
+# now the browser-facing edge (see gateway's SecurityConfig.java comment —
+# "Angular talks to it, not directly to oms-main anymore"), so this is
+# where the single external entry point belongs. oms-main/k8s/04-ingress.yaml
+# still exists but is commented out of that module's kustomization.yaml,
+# not deleted — see the comment there for why it's kept as a reference
+# rather than removed outright.
+#
+# One path rule covers everything: /api/v1/**, /graphql, /graphiql,
+# /.well-known/jwks.json, /docs, /swagger-ui/** all now land on the gateway
+# first, which does its own internal routing (see application.properties'
+# spring.cloud.gateway.server.webflux.routes[*]) to oms-main or oms-bff —
+# the Ingress itself doesn't need per-path rules the way a
+# directly-exposed oms-main once did.
+#
+# Assumes an ingress-nginx controller; swap the class/annotations for
+# whatever controller your cluster actually runs. Replace the host and TLS
+# secret with real values — same host oms-main's Ingress used
+# (oms.example.com), since this is a straight handoff of the same external
+# entry point, not a new one.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oms-gateway
+  labels:
+    app.kubernetes.io/name: oms-gateway
+    app.kubernetes.io/component: gateway
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - oms.example.com
+      secretName: oms-tls
+  rules:
+    - host: oms.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oms-gateway
+                port:
+                  name: http

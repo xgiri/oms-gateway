@@ -1,0 +1,105 @@
+# Single Deployment — the gateway has no web/worker split (nothing here
+# does background work; it's request-in, request-out routing/filtering),
+# so unlike oms-main this doesn't need a second Deployment or a headless
+# counterpart.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oms-gateway
+  labels:
+    app.kubernetes.io/name: oms-gateway
+    app.kubernetes.io/component: gateway
+spec:
+  # Baseline — 05-hpa-gateway.yaml scales within [minReplicas, maxReplicas].
+  # Keep in sync with the HPA's minReplicas, same reasoning as oms-main's
+  # 02-deployment-web.yaml.
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oms-gateway
+      app.kubernetes.io/component: gateway
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: oms-gateway
+        app.kubernetes.io/component: gateway
+      annotations:
+        # For plain (non-Operator) Prometheus using annotation-based pod
+        # discovery — see 09-podmonitor.yaml for the Prometheus Operator
+        # equivalent, same reasoning as oms-main's Deployment.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8091"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      # Matches server.shutdown=graceful +
+      # spring.lifecycle.timeout-per-shutdown-phase=30s in
+      # application.properties — comfortably above that so k8s's SIGKILL
+      # never races Spring's own graceful shutdown, same margin oms-main
+      # uses for its own 30s timeout.
+      terminationGracePeriodSeconds: 45
+      serviceAccountName: oms-gateway
+      containers:
+        - name: oms-gateway
+          # Replace with your real registry/tag, or wire via
+          # `kustomize edit set image` / a CI pipeline step.
+          image: your-registry.example.com/oms-gateway:REPLACE_ME
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8090
+            # management.server.port in application.properties — actuator
+            # lives here, same reasoning as oms-main: not part of
+            # 03-service-gateway.yaml's port list and not referenced by
+            # 04-ingress.yaml, so unreachable from outside the cluster.
+            - name: metrics
+              containerPort: 8091
+          envFrom:
+            - configMapRef:
+                name: oms-gateway-config
+          # Spring Boot auto-enables readiness/liveness health groups under
+          # Kubernetes (KUBERNETES_SERVICE_HOST detection) since
+          # management.health.readiness-state/.liveness-state are already on
+          # — see oms-main's application.properties comment, same mechanism
+          # applies here even though gateway doesn't declare those
+          # properties itself (Spring Boot's own autoconfiguration default).
+          startupProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: metrics
+            periodSeconds: 5
+            failureThreshold: 12   # ~60s ceiling — gateway has no DB migrations/JPA warmup to wait on, cold start is faster than oms-main's
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: metrics
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: metrics
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            # Starting point only — tune from real numbers once running.
+            # Lower than oms-main's web Deployment: no JPA/Hibernate, no DB
+            # connection pool, just routing/filtering + JWT verification.
+            requests:
+              cpu: 150m
+              memory: 384Mi
+            limits:
+              cpu: 750m
+              memory: 512Mi
+          securityContext:
+            # Dockerfile already `USER omsgw` (non-root) — asserted here
+            # the same way oms-main's Deployment asserts its own non-root
+            # user, so the kubelet refuses to schedule if that regresses.
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
