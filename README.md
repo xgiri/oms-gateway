@@ -31,10 +31,6 @@ Angular just talks to this instead of the monolith directly.
   additive defense in depth for now, not a replacement. Retiring the
   monolith-side checks is a later, separate decision once the gateway path
   is proven in production.
-- `oms-main`'s own auth/rate-limiting stays fully in place — this is
-  additive defense in depth for now, not a replacement. Retiring the
-  monolith-side checks is a later, separate decision once the gateway path
-  is proven in production.
 
 ## Vault
 
