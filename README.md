@@ -110,6 +110,19 @@ won't resolve anything without it.
   (`3.9.16` / `only-script` / wrapper `3.3.4`). The Dockerfile's build stage
   now uses `./mvnw` instead of a generic `maven:3.9-eclipse-temurin-21`
   base image, same as `oms-main`'s Dockerfile.
+- ~~**Per-IP login rate limiting breaks once there's a proxy in front**~~ —
+  closed. `clientIpKeyResolver` (`RateLimiterConfig`) reads
+  `getRemoteAddress()`, which without help returns whatever's immediately
+  in front of this app — `ingress-nginx`'s pod IP in k8s — collapsing
+  every external client onto one shared bucket. `server.forward-headers-strategy=framework`
+  (application.properties) makes WebFlux honor `X-Forwarded-For` and
+  rewrite `getRemoteAddress()` to the real client IP before any filter
+  sees the request; see that property's comment for the trust-boundary
+  reasoning (ClusterIP-only Service + `ingress-nginx`'s own
+  `use-forwarded-headers: false` default are what make this safe to trust).
+  `RateLimiterConfigTest` covers the resolver's own extraction/fallback
+  logic — the forwarded-header rewriting itself is Spring's own tested
+  behavior, not re-tested here.
 - **Gateway actuator endpoint** (`/actuator/gateway/**`) is off by default
   in the committed config, on purpose — see CVE-2025-41243/41253. Two
   independent layers now stop it reaching production even if that ever

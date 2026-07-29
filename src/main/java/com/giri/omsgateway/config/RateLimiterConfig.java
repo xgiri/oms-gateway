@@ -37,6 +37,16 @@ public class RateLimiterConfig {
         return new RedisRateLimiter(replenishRate, burstCapacity);
     }
 
+    /**
+     * Depends on {@code server.forward-headers-strategy=framework}
+     * (application.properties) to actually see the real client IP once
+     * there's a proxy in front of this app — see the comment on that
+     * property for the trust-boundary reasoning. Without it,
+     * {@code getRemoteAddress()} here would return whatever sits
+     * immediately in front of the gateway (ingress-nginx's pod IP in k8s),
+     * not the caller — same "IP" for every external client, silently
+     * defeating per-client rate limiting rather than erroring.
+     */
     @Bean
     public KeyResolver clientIpKeyResolver() {
         return exchange -> Mono.justOrEmpty(exchange.getRequest().getRemoteAddress())
