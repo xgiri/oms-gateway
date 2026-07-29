@@ -111,5 +111,15 @@ won't resolve anything without it.
   now uses `./mvnw` instead of a generic `maven:3.9-eclipse-temurin-21`
   base image, same as `oms-main`'s Dockerfile.
 - **Gateway actuator endpoint** (`/actuator/gateway/**`) is off by default
-  in the committed config, on purpose — see CVE-2025-41243/41253. Only
-  re-enable it temporarily for local debugging, never commit it enabled.
+  in the committed config, on purpose — see CVE-2025-41243/41253. Two
+  independent layers now stop it reaching production even if that ever
+  slips: (1) network-level — the metrics port it lives on is never part of
+  `k8s/03-service-gateway.yaml` or `k8s/04-ingress.yaml`, so it's
+  unreachable from outside the cluster regardless of what's exposed on it;
+  (2) config-level — `ActuatorExposureGuard` refuses the app to even start
+  under the `prod` profile if `gateway` (or `*`) ever ends up in
+  `management.endpoints.web.exposure.include`, whether from a forgotten
+  local override or a stray env var (see
+  `ActuatorExposureGuardTest` for the covered cases). Still fine to
+  re-enable temporarily for local (non-`prod`-profile) debugging — just
+  never commit it enabled.
