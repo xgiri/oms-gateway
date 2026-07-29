@@ -35,14 +35,12 @@ and a real Vault cluster reachable from k8s. Plus:
 - **oms-main's own k8s manifests already applied**, with a `Service` named
   `oms-web` reachable in-cluster — `00-configmap.yaml`'s
   `OMS_MONOLITH_URI`/`OMS_JWKS_URI` point at it by that name.
-- **A `Service` named `oms-gateway`'s shared Redis instance (`redis`)
-  reachable in-cluster** — same one oms-main's `00-configmap.yaml` points
-  at; rate limiting and the logout-blacklist check both need it.
-- **oms-bff is not deployed here yet** — `OMS_BFF_URI` in
-  `00-configmap.yaml` points at a Service name (`oms-bff`) that doesn't
-  exist until that module gets its own `k8s/` directory following this same
-  pattern. The gateway's `/graphql` route will 502 until then; every other
-  route works without it.
+- **A `Service` named `redis` reachable in-cluster** — the same shared
+  Redis instance oms-main's `00-configmap.yaml` points at; rate limiting
+  and the logout-blacklist check both need it.
+- **oms-bff's own k8s manifests already applied**, with a `Service` named
+  `oms-bff` reachable in-cluster — `00-configmap.yaml`'s `OMS_BFF_URI`
+  points at it by that name. See `oms-bff/k8s/README.md`.
 
 ## Applying
 

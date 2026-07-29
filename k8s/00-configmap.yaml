@@ -14,14 +14,10 @@ data:
   SPRING_PROFILES_ACTIVE: "prod"
 
   # In-cluster Service names — see oms-main's 03-service-web.yaml for
-  # oms-web, and note below re: oms-bff (no k8s manifests exist for it yet).
+  # oms-web, oms-bff/k8s/03-service-bff.yaml for oms-bff (Service name
+  # matches exactly, so this needed no change once that directory existed).
   OMS_MONOLITH_URI: "http://oms-web:8080"
   OMS_JWKS_URI: "http://oms-web:8080/.well-known/jwks.json"
-  # TBD: oms-bff has no Deployment/Service manifests yet (out of scope for
-  # this increment — the gateway's /graphql route will 502 until oms-bff
-  # gets its own k8s/ directory following this same pattern). Left pointing
-  # at the Service name oms-bff will presumably use, so this only needs
-  # updating if that name changes, not re-derived from scratch later.
   OMS_BFF_URI: "http://oms-bff:8095"
 
   # Same shared Redis instance oms-main's ConfigMap points at — rate
