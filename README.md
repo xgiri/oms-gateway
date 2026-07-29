@@ -82,21 +82,19 @@ won't resolve anything without it.
 
 ## Known gaps / things to verify before this goes further
 
-- **Routing, JWT validation config, and Redis rate limiting have been run
-  and confirmed working locally** (via IntelliJ against `oms-main`'s
-  docker-compose stack). Vault wiring is new and **still not actually run
-  against a live Vault** — that part can't be verified from a diff, only by
-  running it (see "Vault" section above for the exact env vars to set in
-  an IntelliJ run config). What's now closed is the *silent-failure* risk
-  specifically: previously, an unreachable Vault or a missing
-  `REDIS_PASSWORD` key at `secret/oms/dev` would fail the
-  `optional:vault://` import quietly, the app would start up looking
-  healthy, and the actual cause would only surface later as a confusing
-  Redis `NOAUTH` error. `VaultRedisPasswordGuard` now refuses to start at
-  all when `VAULT_ENABLED=true` but the resolved Redis password is empty —
-  same immediate, unambiguous failure at the root cause instead of a
-  symptom three layers downstream (see `VaultRedisPasswordGuardTest` for
-  the covered cases). Run it once for real before treating this as done.
+- ~~**Vault wiring, not yet run against a live Vault**~~ — closed, actually
+  run this time, not just guarded. `docker compose up` against oms-main's
+  full stack: `vault-init` seeded `secret/oms/dev` with `REDIS_PASSWORD`,
+  the gateway container started cleanly (`Started OmsGatewayApplication in
+  6.63 seconds`, no exception) — if `REDIS_PASSWORD` had resolved empty,
+  `VaultRedisPasswordGuard` would have thrown and crashed startup instead,
+  so a clean start here is itself the confirmation, not just an assumption.
+  `secret/oms/dev` resolves via the `kv.default-context=oms` override (see
+  its comment above) — Spring Cloud Vault checks four candidate contexts
+  (`{app-name}/{profile}`, `{app-name}`, `{default-context}/{profile}`,
+  `{default-context}`) and only logs the ones that 404; `oms/dev` being
+  absent from that log's failures is what confirms it resolved, not a gap
+  in what got checked.
 - ~~**Token blacklist (logout)**~~ — closed. `JwtDecoderConfig` wraps the
   JWKS-backed decoder with a check against the same
   `blacklist:jwt:<sha256-hex>` Redis keys `oms-main`'s `TokenBlacklistService`
