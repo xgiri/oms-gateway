@@ -41,6 +41,13 @@ public class SecurityConfig {
             "/.well-known/jwks.json",
             "/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus",
             "/docs", "/docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+            // shipment-service's docs, proxied under its own path prefix (see
+            // application.properties routes[5]) — same reasoning as the
+            // bare oms-main doc paths directly above: static/public docs,
+            // no JWT needed to view them.
+            "/shipment-service/docs", "/shipment-service/docs/**",
+            "/shipment-service/v3/api-docs/**", "/shipment-service/swagger-ui/**",
+            "/shipment-service/swagger-ui.html",
             "/graphiql", "/graphiql/**"
     };
 
