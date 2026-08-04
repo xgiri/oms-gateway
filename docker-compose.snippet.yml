@@ -1,9 +1,9 @@
 # Add this service to the root docker-compose.yml, alongside `app` /
-# `app-worker` / `bff`. Depends on `bff` (for OMS_BFF_URI routing) and
-# `shipment-service` (for OMS_SHIPMENT_SERVICE_URI routing) too — merge
-# oms-bff's and shipment-service's own snippets in first if they aren't
-# already. Not wired in automatically — review against your actual .env and
-# `oms-network` setup first.
+# `app-worker` / `bff`. Depends on `bff` (for OMS_BFF_URI routing),
+# `shipment-service`, `product-service`, and `customer-service` (for their
+# respective *_URI routing) too — merge each of those repos' own snippets
+# in first if they aren't already. Not wired in automatically — review
+# against your actual .env and `oms-network` setup first.
 
   gateway:
     image: oms-gateway:${GATEWAY_VERSION:-local}
@@ -23,6 +23,8 @@
       OMS_JWKS_URI: http://app:8080/.well-known/jwks.json
       OMS_BFF_URI: http://bff:8095
       OMS_SHIPMENT_SERVICE_URI: http://shipment-service:8080
+      OMS_PRODUCT_SERVICE_URI: http://product-service:8080
+      OMS_CUSTOMER_SERVICE_URI: http://customer-service:8080
       REDIS_HOST: redis
       REDIS_PORT: 6379
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200}
@@ -44,6 +46,10 @@
       bff:
         condition: service_healthy
       shipment-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      customer-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8091/actuator/health"]
